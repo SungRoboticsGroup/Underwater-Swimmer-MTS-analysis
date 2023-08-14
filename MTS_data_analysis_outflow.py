@@ -21,19 +21,8 @@ plt.rcParams['font.size'] = font_size
 # file path
 mts_data_path = 'valve_characterization'
 
-def avg(arr):
-    arr_to_return=np.zeros(len(arr[0]))
-    for i in range(len(arr_to_return)):
-        for j in range(len(arr)):
-            arr_to_return[i]=arr_to_return[i]+arr[j][i]
-    arr_to_return=arr_to_return/len(arr)
-    return arr_to_return
-def conv(s):
-    try:
-        s=float(s)
-    except ValueError:
-        pass    
-    return s
+# this helper function reads in a csv file, and returns the x,f, and t values, 
+# where x is the vertical displacement array, f is the force array, and t is the time array
 def parse_mts_data_csv(data_path):
     with open(data_path) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
@@ -49,6 +38,7 @@ def parse_mts_data_csv(data_path):
         f=arr_to_return[0:,1]
         t=arr_to_return[0:,2]
     return x,f,t
+# If we are subtracting a control experiment, this function identifies the correct control based on the key
 def get_thing_to_subtract(str,key,speed):
     if str=='aperture':
         if(speed=="8m"):
@@ -60,7 +50,9 @@ def get_thing_to_subtract(str,key,speed):
         if('800' in key):
                 thing_to_subtract=speed+"ms_empty_800mm2"
     return thing_to_subtract
-def plot_thickness(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets):
+# This creates 3 kinds of plots to show the effects of varying thickness. It plots the raw data, the mean with standard deviation, 
+# and one which normalizes by subtracting the control
+def plot_thickness(xdictraw,fdictraw,std,keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets):
     speeds=[keys_of_70ms,keys_of_20ms,keys_of_8ms]
     orientations=[keys_of_outlets,keys_of_inlets]
     count=0
@@ -85,9 +77,33 @@ def plot_thickness(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8le
                 if(keys_of_8leaf.count(key)!=0):
                     if(speed.count(key)!=0):
                         if(keys_of_500.count(key)!=0):
-                            line=plt.plot(xdict[key],fdict[key], label=key)           
+                            line, =plt.plot(xdict[key],fdict[key], label=key) 
+                            c=line.get_color()
+                            test=fdict[key]-std[key]
+                            testy=fdict[key]+std[key]
+                            plt.fill_between(xdict[key], test, testy,color=c, alpha=.5)          
             leg = plt.legend(loc='lower right')
+            #leg = plt.legend(bbox_to_anchor=(1.05, 1.05))
             plt.title(title_speed+", 8leaf, 500mm2, .001vs.002vs.003"+title_or)
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
+            plt.xlim(0, 80)
+            plt.show()
+
+            #plot 70m/s, 8leaf, .002in, 300vs.500vs.800 outlets  at 300,500,800
+            for key in orientation:
+                if(keys_of_8leaf.count(key)!=0):
+                    if(speed.count(key)!=0):
+                        if(keys_of_500.count(key)!=0):
+                            for count in range(5):
+                                line, =plt.plot(xdictraw[key][count],fdictraw[key][count], label=key+" trial # "+ str(count+1) )  
+                                               
+            leg = plt.legend(loc='lower right', fontsize='xx-small', ncol=3)
+            #leg = plt.legend(bbox_to_anchor=(1.05, 1.05))
+            plt.title(title_speed+", 8leaf, 500mm2, .001vs.002vs.003 "+title_or + " raw data")
+
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
             plt.xlim(0, 80)
             plt.show()
             for key in orientation:
@@ -99,9 +115,13 @@ def plot_thickness(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8le
                             line=plt.plot(xdict[key],fdict[key]-fdict[thing_to_subtract], label=key)           
             leg = plt.legend(loc='lower right')
             plt.title(title_speed+", 8leaf, 500mm2, .001vs.002vs.003"+title_or +"subtracted by 70ms no leaf at 500")
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
             plt.xlim(0, 80)
             plt.show()
-def plot_num_leaflets(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets):
+# This creates 3 kinds of plots to show the effects of varying number of leaflets. It plots the raw data, the mean with standard deviation, 
+# and one which normalizes by subtracting the control
+def plot_num_leaflets(xdictraw,fdictraw,std,keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets):
     speeds=[keys_of_70ms,keys_of_20ms,keys_of_8ms]
     orientations=[keys_of_outlets,keys_of_inlets]
     count=0
@@ -126,10 +146,32 @@ def plot_num_leaflets(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_
                 if(keys_of_500.count(key)!=0):
                     if(speed.count(key)!=0):
                         if(keys_of_002.count(key)!=0):
-                            line=plt.plot(xdict[key],fdict[key], label=key)           
+                            line, =plt.plot(xdict[key],fdict[key], label=key)   
+                            c=line.get_color()
+                            test=fdict[key]-std[key]
+                            testy=fdict[key]+std[key]
+                            plt.fill_between(xdict[key], test, testy,color=c, alpha=.5)                  
             leg = plt.legend(loc='lower right')
+            #leg = plt.legend(bbox_to_anchor=(1.05, 1.05))
             plt.title(title_speed+", 500mm2, .002in, 4 vs 8 vs 10"+title_or )
             plt.xlim(0, 80)
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
+            plt.show()
+            #plot raw 70m/s, 8leaf, .002in, 300vs.500vs.800 outlets  at 300,500,800
+            for key in orientation:
+                if(keys_of_500.count(key)!=0):
+                    if(speed.count(key)!=0):
+                        if(keys_of_002.count(key)!=0):
+                            for count in range(5):
+                                line, =plt.plot(xdictraw[key][count],fdictraw[key][count], label=key+" trial # "+ str(count+1) )  
+                                c=line.get_color()                 
+            leg = plt.legend(loc='lower right', fontsize='xx-small', ncol=3)
+            #leg = plt.legend(bbox_to_anchor=(1.05, 1.05))
+            plt.title(title_speed+", 500mm2, .002in, 4 vs 8 vs 10 "+title_or + " raw data")
+            plt.xlim(0, 80)
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
             plt.show()
             for key in orientation:
             #plot 70m/s, 8leaf, .002in, 300vs.500vs.800 oulets subtracted by no leaf at 300,500,800
@@ -141,8 +183,12 @@ def plot_num_leaflets(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_
             leg = plt.legend(loc='lower right')
             plt.title(title_speed+", 500mm2, .002in, 4 vs 8 vs 10"+title_or +"subtracting no leaf at 500")
             plt.xlim(0, 80)
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
             plt.show()
-def plot_apertures(std,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets):
+# This creates 3 kinds of plots to show the effects of varying aperture size. It plots the raw data, the mean with standard deviation, 
+# and one which normalizes by subtracting the control
+def plot_apertures(xdictraw, fdictraw, std,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets):
     speeds=[keys_of_70ms,keys_of_20ms,keys_of_8ms]
     orientations=[keys_of_outlets,keys_of_inlets]
     count=0
@@ -167,17 +213,34 @@ def plot_apertures(std,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_
                 if(keys_of_8leaf.count(key)!=0):
                     if(speed.count(key)!=0):
                         if(keys_of_002.count(key)!=0):
-                            line=plt.plot(xdict[key],fdict[key], label=key)  
-                            print(fdict[key]-std[key])
-                            print(fdict[key]+std[key])
+                            line, =plt.plot(xdict[key],fdict[key], label=key)  
+                            c=line.get_color()
                             test=fdict[key]-std[key]
                             testy=fdict[key]+std[key]
-                            plt.fill_between(xdict[key], test, testy)
-                            #line=plt.plot(xdict[key],std[key], label= "std of "+key)         
-            leg = plt.legend(loc='lower right')
-            plt.title(title_speed+", 8leaf, .002in, 300vs.500vs.800"+title_or +" at 300,500,800")
+                            plt.fill_between(xdict[key], test, testy,color=c, alpha=.5)        
+            leg = plt.legend(loc='lower right', fontsize='xx-small')
             plt.xlim(0, 80)
+            #plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", borderaxespad=0)
+            plt.title(title_speed+", 8leaf, .002in, 300vs.500vs.800"+title_or +" at 300,500,800")
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
             plt.show()
+            #plot raw data
+            for key in orientation:
+                if(keys_of_8leaf.count(key)!=0):
+                    if(speed.count(key)!=0):
+                        if(keys_of_002.count(key)!=0):
+                            for count in range(5):
+                                line =plt.plot(xdictraw[key][count],fdictraw[key][count], label=key+" trial # "+ str(count+1) )  
+            
+            leg = plt.legend(loc='lower right', fontsize='xx-small', ncol=3)
+            plt.xlim(0, 80)
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
+            #plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", borderaxespad=0)
+            plt.title(title_speed+", 8leaf, .002in, 300vs.500vs.800 "+title_or +" at 300,500,800 " + " raw data")
+            plt.show()
+            
             for key in orientation:
             #plot 70m/s, 8leaf, .002in, 300vs.500vs.800 oulets subtracted by no leaf at 300,500,800
                 if(keys_of_8leaf.count(key)!=0):
@@ -185,8 +248,10 @@ def plot_apertures(std,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_
                         if(keys_of_002.count(key)!=0):
                             thing_to_subtract=get_thing_to_subtract("aperture",key,title_speed[0:2])
                             line=plt.plot(xdict[key],fdict[key]-fdict[thing_to_subtract], label=key)           
-            leg = plt.legend(loc='lower right')
+            leg = plt.legend(loc='lower right', fontsize='xx-small')
             plt.title(title_speed+", 8leaf, .002in, 300vs.500vs.800"+title_or +"subtracted by no leaf at 300,500,800")
+            plt.xlabel("displacement (MM)")
+            plt.ylabel("Force (N)")
             plt.xlim(0, 80)
             plt.show()
             
@@ -200,45 +265,45 @@ def main():
     cols=0
     control=np.zeros((3,830))
     num_trials=0
-    #get control to subtract
-    for filename in os.listdir(path_of_control):
-                if(filename!= '.DS_Store' ):
-                    updated_path=path_of_control+ '/' + filename
-                    for folder in os.listdir(updated_path):
-                        if(folder!= '.DS_Store'):
-                            x1, f1, t1= parse_mts_data_csv(updated_path + '/' + folder )
-                            #print(control)
-                            #print(len(control[0]))
-                            for index in range(len(f1)):
-                                control[0][index]=control[0][index]+f1[index]
-                                control[1][index]=control[0][index]+x1[index]
-                            num_trials=num_trials+1
-    avg_control= control/num_trials
-   # print(avg_control)
-    #print(avg_control)
+    #the following arrays store the strings that correspond to the names of each file.
+    #They are sorted into arrays based on type for easier sorting
+    #all keys
     keys=[]
+    #keys of all inlet directional tests
     keys_of_inlets=[]
+    #keys of all outlet directional tests
+    keys_of_outlets=[]
+    #keys of aperture sizes (500 mm^2, 300 mm^2, 800 mm^2)
     keys_of_500=[]
     keys_of_300=[]
     keys_of_800=[]
+    #keys of speeds (8 m/s, 20 m/s, 70 m/s)
     keys_of_8ms=[]
     keys_of_20ms=[]
+    keys_of_70ms=[]
+    #keys of thicknesses (.01 cm, .02 cm, .03 cm)
     keys_of_002=[]
     keys_of_001=[]
     keys_of_003=[]
-    keys_of_70ms=[]
-    keys_of_outlets=[]
+    #keys of # of leaflets (4,8,10)
     keys_of_8leaf=[]
     keys_of_10leaf=[]
     keys_of_4leaf=[]
+    #dictionary of averages, where the key is the filename
     fdict={}
-    std={}
     xdict={}
+    #dictionary of raw vales, where the key is the filename
+    fdictraw={}
+    xdictraw={}
+    #dictionary of standard deviations, where the key is the filename
+    std={}
+    
+    #iterate through each test name in the folder
     for testing in os.listdir(mts_data_path):
-        #count=count+1
         if testing!='.DS_Store' :
             print(testing)
             keys.append(testing)
+            #sort the tests based on their speed, thickness, number of leaflets, and aperture size
             if("001" in testing):
                 keys_of_001.append(testing)
             if("002" in testing):
@@ -268,40 +333,40 @@ def main():
             if("10leaf" in testing):
                 keys_of_10leaf.append(testing)
             newpath=mts_data_path + '/'+testing
-            ftemparray=np.zeros(830)
-            xtemparray=np.zeros(830)
-            stdtemparray=np.zeros((5,830))
+            #make temporary arrays
             num_trials=0
+            tempfdictraw=np.zeros((5,830))
+            xdictraw[testing]=np.zeros((5,830))
             for filename in os.listdir(newpath):
                 print(filename)
                 if(filename!= '.DS_Store'):
                     updated_path=newpath+ '/' + filename
+                    #iterate through all 5 trials
                     for temp in os.listdir(updated_path):
                         if(temp!= '.DS_Store'):
                             x1, f1, t1= parse_mts_data_csv(updated_path + '/' + temp)
+                            #fill arrays
                             for index in range(len(f1)):
-                                ftemparray[index]=ftemparray[index]+f1[index]
-                                xtemparray[index]=xtemparray[index]+x1[index]
+                                tempfdictraw[num_trials][index]=f1[index]
+                                xdictraw[testing][num_trials][index]=x1[index]
                             num_trials=num_trials+1
-            
-            print(num_trials)
-            fdict[testing]=ftemparray/num_trials
-            xdict[testing]=xtemparray/num_trials
+            #store raw data and standard deviation
+            fdictraw[testing]=tempfdictraw
+            temparray=np.zeros(830)
+            for index in range(830):
+                value=np.std([tempfdictraw[0][index],tempfdictraw[1][index],tempfdictraw[2][index],tempfdictraw[3][index],tempfdictraw[4][index]])
+                temparray[index]=value
+            std[testing]=temparray
+            totalf=np.zeros(830)
+            totalx=np.zeros(830)
+            #compute averages
+            for i in range(5):
+                totalf=totalf+tempfdictraw[i]
+                totalx=totalx+xdictraw[testing][i]
+            fdict[testing]=totalf/5
+            xdict[testing]=totalx/5
             num_trials=0
-            for filename in os.listdir(newpath):
-                print(filename)
-                if(filename!= '.DS_Store'):
-                    updated_path=newpath+ '/' + filename
-                    for temp in os.listdir(updated_path):
-                        if(temp!= '.DS_Store'):
-                            x1, f1, t1= parse_mts_data_csv(updated_path + '/' + temp)
-                            for index in range(len(f1)):
-                                stdtemparray[num_trials,index]=(fdict[testing][index]-f1[index])**2
-
-                            num_trials=num_trials+1
-                    print(num_trials)
-                    for n in range(num_trials-1):
-                        std[testing]=stdtemparray[n]
+        
     
     #plot all outlets
     for key in keys_of_outlets:
@@ -309,22 +374,11 @@ def main():
     leg = plt.legend(loc='lower right')
     plt.show()
     #plot apertures
-    plot_apertures(std,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets)
+    #plot_apertures(xdictraw,fdictraw,std,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets)
     #plot thicknesses
-    plot_thickness(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets)
+    plot_thickness(xdictraw,fdictraw,std,keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets)
     #plot num leaflets
-    plot_num_leaflets(keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets)
-
-   
-
-    #thing_to_plot='70ms_8leaf_300mm2_002in_out'
-    #line=plt.plot(xdict[thing_to_plot],fdict[thing_to_plot], label=thing_to_plot)
-    #thing_to_plot='70ms_8leaf_500mm2_002in_out'
-    #line=plt.plot(xdict[thing_to_plot],fdict[thing_to_plot], label=thing_to_plot)
-    #thing_to_plot='70ms_8leaf_800mm2_002in_out'
-    #line=plt.plot(xdict[thing_to_plot],fdict[thing_to_plot], label=thing_to_plot)
-    #plt.title("8 leaf 70 ms varying aperture outlet")
-    #plt.show()
+    #plot_num_leaflets(xdictraw,fdictraw,std,keys_of_500,keys_of_70ms,keys_of_20ms,keys_of_8ms,keys_of_8leaf,keys_of_002,xdict,fdict,keys_of_outlets,keys_of_inlets)
 
     
 
